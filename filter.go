@@ -206,7 +206,8 @@ func (f *Filter) Where() (string, error) {
 		return exp, nil
 	case IS, NOT:
 		if f.Value == NULL {
-			exp = fmt.Sprintf("%s %s NULL", f.Name, translateMethods[f.Method])
+			operator := translateMethods[f.Method]
+			exp = fmt.Sprintf("(%s %s NULL OR %s %s '')", f.Name, operator, f.Name, operator)
 			return exp, nil
 		}
 		return exp, ErrUnknownMethod
@@ -260,7 +261,7 @@ func (f *Filter) Args() ([]interface{}, error) {
 func (f *Filter) setInt(list []string) error {
 	if len(list) == 1 {
 		switch f.Method {
-		case EQ, NE, GT, LT, GTE, LTE, IN, NIN:
+		case EQ, NE, GT, LT, GTE, LTE, IN, NIN, IS, NOT:
 			i, err := strconv.Atoi(list[0])
 			if err != nil {
 				return ErrBadFormat

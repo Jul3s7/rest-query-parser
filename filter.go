@@ -135,7 +135,8 @@ func (f *Filter) validate(validate ValidationFunc) error {
 }
 
 // parseKey parses key to set f.Name and f.Method
-//   id[eq] -> f.Name = "id", f.Method = EQ
+//
+//	id[eq] -> f.Name = "id", f.Method = EQ
 func (f *Filter) parseKey(key string) error {
 
 	// default Method is EQ
@@ -207,7 +208,17 @@ func (f *Filter) Where() (string, error) {
 	case IS, NOT:
 		if f.Value == NULL {
 			operator := translateMethods[f.Method]
-			exp = fmt.Sprintf("(%s %s NULL OR %s %s '')", f.Name, operator, f.Name, operator)
+			var emptyOperator, connector string
+
+			if f.Method == IS {
+				emptyOperator = "="
+				connector = "OR"
+			} else { // NOT
+				emptyOperator = "!="
+				connector = "AND"
+			}
+
+			exp = fmt.Sprintf("(%s %s NULL %s %s %s '')", f.Name, operator, connector, f.Name, emptyOperator)
 			return exp, nil
 		}
 		return exp, ErrUnknownMethod

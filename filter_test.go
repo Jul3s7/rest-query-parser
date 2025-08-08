@@ -58,7 +58,7 @@ func Test_NullIntegerHandling(t *testing.T) {
 		}
 		where, err := filter.Where()
 		assert.NoError(t, err)
-		assert.Equal(t, "(id IS NULL OR id IS '')", where)
+		assert.Equal(t, "(id IS NULL OR id = '')", where)
 
 		args, err := filter.Args()
 		assert.NoError(t, err)
@@ -74,7 +74,7 @@ func Test_NullIntegerHandling(t *testing.T) {
 		}
 		where, err := filter.Where()
 		assert.NoError(t, err)
-		assert.Equal(t, "(id IS NOT NULL OR id IS NOT '')", where)
+		assert.Equal(t, "(id IS NOT NULL AND id != '')", where)
 
 		args, err := filter.Args()
 		assert.NoError(t, err)

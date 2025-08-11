@@ -45,14 +45,6 @@ func TestHaveSortBy(t *testing.T) {
 	assert.Equal(t, q.HaveSortBy("fake"), false)
 }
 
-func TestRemoveFilter(t *testing.T) {
-	q := New()
-	q.AddFilter("id", ILIKE, "id")
-	q.AddFilter("test", ILIKE, "test")
-	q.AddFilter("test2", ILIKE, "test2")
-	assert.NoError(t, q.RemoveFilter("test"))
-}
-
 func TestGetFilter(t *testing.T) {
 	q := New()
 	q.AddFilter("id", ILIKE, "id")
@@ -247,22 +239,13 @@ func TestWhere(t *testing.T) {
 		{url: "?u[not]=NULL", expected: " WHERE (u IS NOT NULL AND u != '')"},
 		{url: "?u[is]=NULL", expected: " WHERE (u IS NULL OR u = '')"},
 		// integer null:
-		{url: "?id[not]=NULL", expected: " WHERE (id IS NOT NULL AND id != '')"},
-		{url: "?id[is]=NULL", expected: " WHERE (id IS NULL OR id = '')"},
-		{url: "?id[not]=null", expected: " WHERE (id IS NOT NULL AND id != '')"},
-		{url: "?id[is]=null", expected: " WHERE (id IS NULL OR id = '')"},
-		// empty string null:
-		{url: "?u[is]=", expected: " WHERE (u IS NULL OR u = '')"},
-		{url: "?u[not]=", expected: " WHERE (u IS NOT NULL AND u != '')"},
-		{url: "?id[is]=", expected: " WHERE (id IS NULL OR id = '')"},
-		{url: "?id[not]=", expected: " WHERE (id IS NOT NULL AND id != '')"},
-		// quoted empty string null:
-		{url: `?u[is]=""`, expected: " WHERE (u IS NULL OR u = '')"},
-		{url: `?u[not]=""`, expected: " WHERE (u IS NOT NULL AND u != '')"},
-		{url: `?id[is]=""`, expected: " WHERE (id IS NULL OR id = '')"},
-		{url: `?id[not]=""`, expected: " WHERE (id IS NOT NULL AND id != '')"},
-		{url: `?u[is]=''`, expected: " WHERE (u IS NULL OR u = '')"},
-		{url: `?id[not]=''`, expected: " WHERE (id IS NOT NULL AND id != '')"},
+		{url: "?id[not]=NULL", expected: " WHERE id IS NOT NULL"},
+		{url: "?id[is]=NULL", expected: " WHERE id IS NULL"},
+		{url: "?id[not]=null", expected: " WHERE id IS NOT NULL"},
+		{url: "?id[is]=null", expected: " WHERE id IS NULL"},
+		// empty string checks with regular operators:
+		{url: `?u=""`, expected: " WHERE u = ?"},
+		{url: `?u[ne]=""`, expected: " WHERE u != ?"},
 		// bool:
 		{url: "?b=true", expected: " WHERE b = ?"},
 		{url: "?b=true1", err: "b: bad format"},

@@ -210,19 +210,10 @@ func (f *Filter) Where() (string, error) {
 		exp = fmt.Sprintf("%s %s ?", f.Name, translateMethods[f.Method])
 		return exp, nil
 	case IS, NOT:
-		if f.Value == NULL || f.Value == "" {
+		// Only handle NULL values
+		if f.Value == NULL {
 			operator := translateMethods[f.Method]
-			var emptyOperator, connector string
-
-			if f.Method == IS {
-				emptyOperator = "="
-				connector = "OR"
-			} else { // NOT
-				emptyOperator = "!="
-				connector = "AND"
-			}
-
-			exp = fmt.Sprintf("(%s %s NULL %s %s %s '')", f.Name, operator, connector, f.Name, emptyOperator)
+			exp = fmt.Sprintf("%s %s NULL", f.Name, operator)
 			return exp, nil
 		}
 		return exp, ErrUnknownMethod
@@ -247,9 +238,9 @@ func (f *Filter) Args() ([]interface{}, error) {
 		args = append(args, f.Value)
 		return args, nil
 	case IS, NOT:
-		if f.Value == NULL || f.Value == "" {
-			args = append(args, f.Value)
-			return args, nil
+		// NULL checks have no parameters
+		if f.Value == NULL {
+			return args, nil // Empty args for NULL checks
 		}
 		return nil, ErrUnknownMethod
 	case LIKE, ILIKE, NLIKE, NILIKE:
@@ -276,41 +267,42 @@ func (f *Filter) Args() ([]interface{}, error) {
 func (f *Filter) setInt(list []string) error {
 	if len(list) == 1 {
 		switch f.Method {
-		case EQ, NE, GT, LT, GTE, LTE, IN, NIN, IS, NOT:
-			// Handle NULL and empty string values for IS and NOT methods
-			if f.Method == IS || f.Method == NOT {
-				if strings.Compare(strings.ToUpper(list[0]), NULL) == 0 {
-					f.Value = NULL
-					return nil
-				} else if list[0] == "" {
-					f.Value = ""
-					return nil
-				}
-			}
-
+		case EQ, NE, GT, LT, GTE, LTE, IN, NIN:
+			// Regular integer parsing
 			i, err := strconv.Atoi(list[0])
 			if err != nil {
 				return ErrBadFormat
 			}
 			f.Value = i
+			return nil
+		case IS, NOT:
+			// Only allow NULL for IS/NOT operators
+			if strings.Compare(strings.ToUpper(list[0]), NULL) == 0 {
+				f.Value = NULL
+				return nil
+			}
+			return ErrBadFormat // Reject everything else for IS/NOT
 		default:
-			return ErrMethodNotAllowed
+			return ErrUnknownMethod
 		}
 	} else {
-		if f.Method != IN && f.Method != NIN {
-			return ErrMethodNotAllowed
-		}
-		intSlice := make([]int, len(list))
-		for i, s := range list {
-			v, err := strconv.Atoi(s)
-			if err != nil {
-				return ErrBadFormat
+		// Handle multiple values (IN/NIN)
+		switch f.Method {
+		case IN, NIN:
+			intSlice := make([]int, len(list))
+			for i, v := range list {
+				val, err := strconv.Atoi(v)
+				if err != nil {
+					return ErrBadFormat
+				}
+				intSlice[i] = val
 			}
-			intSlice[i] = v
+			f.Value = intSlice
+			return nil
+		default:
+			return ErrBadFormat
 		}
-		f.Value = intSlice
 	}
-	return nil
 }
 
 func (f *Filter) setBool(list []string) error {
@@ -337,23 +329,24 @@ func (f *Filter) setString(list []string) error {
 			f.Value = list[0]
 			return nil
 		case IS, NOT:
-			// Allow both NULL and empty string for IS/NOT operators
+			// Only allow NULL for IS/NOT operators
 			if strings.Compare(strings.ToUpper(list[0]), NULL) == 0 {
 				f.Value = NULL
 				return nil
-			} else if list[0] == "" {
-				f.Value = ""
-				return nil
 			}
+			return ErrBadFormat // Reject empty strings for IS/NOT
 		default:
 			return ErrMethodNotAllowed
 		}
 	} else {
+		// Handle multiple values (IN/NIN)
 		switch f.Method {
 		case IN, NIN:
 			f.Value = list
 			return nil
+		default:
+			return ErrBadFormat
 		}
 	}
-	return ErrMethodNotAllowed
+	
 }

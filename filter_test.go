@@ -46,6 +46,38 @@ func Test_Args(t *testing.T) {
 		_, err = filter.Args()
 		assert.Equal(t, err, ErrUnknownMethod)
 	})
+
+	t.Run("String field with IS empty string", func(t *testing.T) {
+		filter := Filter{
+			Key:    "name[is]",
+			Name:   "name",
+			Method: IS,
+			Value:  "",
+		}
+		where, err := filter.Where()
+		assert.NoError(t, err)
+		assert.Equal(t, "(name IS NULL OR name = '')", where)
+
+		args, err := filter.Args()
+		assert.NoError(t, err)
+		assert.Equal(t, []interface{}{""}, args)
+	})
+
+	t.Run("Integer field with IS empty string", func(t *testing.T) {
+		filter := Filter{
+			Key:    "id[is]",
+			Name:   "id",
+			Method: IS,
+			Value:  "",
+		}
+		where, err := filter.Where()
+		assert.NoError(t, err)
+		assert.Equal(t, "(id IS NULL OR id = '')", where)
+
+		args, err := filter.Args()
+		assert.NoError(t, err)
+		assert.Equal(t, []interface{}{""}, args)
+	})
 }
 
 func Test_NullIntegerHandling(t *testing.T) {
@@ -196,6 +228,38 @@ func Test_IntegerNullParsing(t *testing.T) {
 		args, err := filter.Args()
 		assert.NoError(t, err)
 		assert.Equal(t, []interface{}{123}, args)
+	})
+
+	t.Run("Parse name[is]= (empty string) from URL", func(t *testing.T) {
+		validations := Validations{
+			"name": nil,
+		}
+		filter, err := newFilter("name[is]", "", ",", validations)
+		assert.NoError(t, err)
+		assert.Equal(t, "name[is]", filter.Key)
+		assert.Equal(t, "name", filter.Name)
+		assert.Equal(t, IS, filter.Method)
+		assert.Equal(t, "", filter.Value)
+
+		where, err := filter.Where()
+		assert.NoError(t, err)
+		assert.Equal(t, "(name IS NULL OR name = '')", where)
+	})
+
+	t.Run("Parse color_id[not]= (empty string) from URL", func(t *testing.T) {
+		validations := Validations{
+			"color_id:int": nil,
+		}
+		filter, err := newFilter("color_id[not]", "", ",", validations)
+		assert.NoError(t, err)
+		assert.Equal(t, "color_id[not]", filter.Key)
+		assert.Equal(t, "color_id", filter.Name)
+		assert.Equal(t, NOT, filter.Method)
+		assert.Equal(t, "", filter.Value)
+
+		where, err := filter.Where()
+		assert.NoError(t, err)
+		assert.Equal(t, "(color_id IS NOT NULL AND color_id != '')", where)
 	})
 }
 

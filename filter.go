@@ -125,8 +125,8 @@ func (f *Filter) validate(validate ValidationFunc) error {
 			}
 		}
 	case int, bool, string:
-		// Skip validation for NULL values as they are handled specially
-		if f.Value == NULL {
+		// Skip validation for NULL and empty string values as they are handled specially by IS/NOT
+		if f.Value == NULL || f.Value == "" {
 			return nil
 		}
 		err := validate(f.Value)
@@ -210,7 +210,7 @@ func (f *Filter) Where() (string, error) {
 		exp = fmt.Sprintf("%s %s ?", f.Name, translateMethods[f.Method])
 		return exp, nil
 	case IS, NOT:
-		if f.Value == NULL {
+		if f.Value == NULL || f.Value == "" {
 			operator := translateMethods[f.Method]
 			var emptyOperator, connector string
 
@@ -247,7 +247,7 @@ func (f *Filter) Args() ([]interface{}, error) {
 		args = append(args, f.Value)
 		return args, nil
 	case IS, NOT:
-		if f.Value == NULL {
+		if f.Value == NULL || f.Value == "" {
 			args = append(args, f.Value)
 			return args, nil
 		}
@@ -277,9 +277,15 @@ func (f *Filter) setInt(list []string) error {
 	if len(list) == 1 {
 		switch f.Method {
 		case EQ, NE, GT, LT, GTE, LTE, IN, NIN, IS, NOT:
-			if (f.Method == IS || f.Method == NOT) && strings.Compare(strings.ToUpper(list[0]), NULL) == 0 {
-				f.Value = NULL
-				return nil
+			// Handle NULL and empty string values for IS and NOT methods
+			if f.Method == IS || f.Method == NOT {
+				if strings.Compare(strings.ToUpper(list[0]), NULL) == 0 {
+					f.Value = NULL
+					return nil
+				} else if list[0] == "" {
+					f.Value = ""
+					return nil
+				}
 			}
 
 			i, err := strconv.Atoi(list[0])
@@ -331,8 +337,12 @@ func (f *Filter) setString(list []string) error {
 			f.Value = list[0]
 			return nil
 		case IS, NOT:
+			// Allow both NULL and empty string for IS/NOT operators
 			if strings.Compare(strings.ToUpper(list[0]), NULL) == 0 {
 				f.Value = NULL
+				return nil
+			} else if list[0] == "" {
+				f.Value = ""
 				return nil
 			}
 		default:

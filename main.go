@@ -723,7 +723,8 @@ func (q *Query) requiredNames() map[string]bool {
 func (q *Query) parseFilter(key, value string) error {
 	value = strings.TrimSpace(value)
 
-	if len(value) == 0 {
+	// Allow empty values only for IS and NOT operators
+	if len(value) == 0 && !strings.Contains(key, "[is]") && !strings.Contains(key, "[not]") {
 		return errors.Wrap(ErrEmptyValue, key)
 	}
 

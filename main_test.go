@@ -256,6 +256,13 @@ func TestWhere(t *testing.T) {
 		{url: "?u[not]=", expected: " WHERE (u IS NOT NULL AND u != '')"},
 		{url: "?id[is]=", expected: " WHERE (id IS NULL OR id = '')"},
 		{url: "?id[not]=", expected: " WHERE (id IS NOT NULL AND id != '')"},
+		// quoted empty string null:
+		{url: `?u[is]=""`, expected: " WHERE (u IS NULL OR u = '')"},
+		{url: `?u[not]=""`, expected: " WHERE (u IS NOT NULL AND u != '')"},
+		{url: `?id[is]=""`, expected: " WHERE (id IS NULL OR id = '')"},
+		{url: `?id[not]=""`, expected: " WHERE (id IS NOT NULL AND id != '')"},
+		{url: `?u[is]=''`, expected: " WHERE (u IS NULL OR u = '')"},
+		{url: `?id[not]=''`, expected: " WHERE (id IS NOT NULL AND id != '')"},
 		// bool:
 		{url: "?b=true", expected: " WHERE b = ?"},
 		{url: "?b=true1", err: "b: bad format"},

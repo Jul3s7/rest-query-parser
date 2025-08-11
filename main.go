@@ -723,9 +723,18 @@ func (q *Query) requiredNames() map[string]bool {
 func (q *Query) parseFilter(key, value string) error {
 	value = strings.TrimSpace(value)
 
+	// Check if this is an empty value (either unquoted or quoted empty string)
+	isEmpty := len(value) == 0 || value == `""` || value == `''`
+	isISorNOT := strings.Contains(key, "[is]") || strings.Contains(key, "[not]")
+
 	// Allow empty values only for IS and NOT operators
-	if len(value) == 0 && !strings.Contains(key, "[is]") && !strings.Contains(key, "[not]") {
+	if isEmpty && !isISorNOT {
 		return errors.Wrap(ErrEmptyValue, key)
+	}
+
+	// Convert quoted empty strings to actual empty strings for IS/NOT operators
+	if isISorNOT && (value == `""` || value == `''`) {
+		value = ""
 	}
 
 	if strings.Contains(value, q.delimiterOR) { // OR multiple filter

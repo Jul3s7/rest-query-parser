@@ -125,6 +125,10 @@ func (f *Filter) validate(validate ValidationFunc) error {
 			}
 		}
 	case int, bool, string:
+		// Skip validation for NULL values as they are handled specially
+		if f.Value == NULL {
+			return nil
+		}
 		err := validate(f.Value)
 		if err != nil {
 			return err
@@ -273,6 +277,11 @@ func (f *Filter) setInt(list []string) error {
 	if len(list) == 1 {
 		switch f.Method {
 		case EQ, NE, GT, LT, GTE, LTE, IN, NIN, IS, NOT:
+			if (f.Method == IS || f.Method == NOT) && strings.Compare(strings.ToUpper(list[0]), NULL) == 0 {
+				f.Value = NULL
+				return nil
+			}
+
 			i, err := strconv.Atoi(list[0])
 			if err != nil {
 				return ErrBadFormat

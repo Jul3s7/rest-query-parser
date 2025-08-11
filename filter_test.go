@@ -108,6 +108,95 @@ func Test_NullIntegerHandling(t *testing.T) {
 		_, err = filter.Args()
 		assert.Equal(t, err, ErrUnknownMethod)
 	})
+
+	t.Run("Integer field with IS NULL (color_id)", func(t *testing.T) {
+		filter := Filter{
+			Key:    "color_id[is]",
+			Name:   "color_id",
+			Method: IS,
+			Value:  NULL,
+		}
+		where, err := filter.Where()
+		assert.NoError(t, err)
+		assert.Equal(t, "(color_id IS NULL OR color_id = '')", where)
+
+		args, err := filter.Args()
+		assert.NoError(t, err)
+		assert.Equal(t, []interface{}{NULL}, args)
+	})
+
+	t.Run("Integer field with NOT NULL (color_id)", func(t *testing.T) {
+		filter := Filter{
+			Key:    "color_id[not]",
+			Name:   "color_id",
+			Method: NOT,
+			Value:  NULL,
+		}
+		where, err := filter.Where()
+		assert.NoError(t, err)
+		assert.Equal(t, "(color_id IS NOT NULL AND color_id != '')", where)
+
+		args, err := filter.Args()
+		assert.NoError(t, err)
+		assert.Equal(t, []interface{}{NULL}, args)
+	})
+}
+
+func Test_IntegerNullParsing(t *testing.T) {
+	validations := Validations{
+		"color_id:int": nil,
+	}
+
+	t.Run("Parse color_id[is]=null from URL", func(t *testing.T) {
+		filter, err := newFilter("color_id[is]", "null", ",", validations)
+		assert.NoError(t, err)
+		assert.Equal(t, "color_id[is]", filter.Key)
+		assert.Equal(t, "color_id", filter.Name)
+		assert.Equal(t, IS, filter.Method)
+		assert.Equal(t, NULL, filter.Value)
+
+		where, err := filter.Where()
+		assert.NoError(t, err)
+		assert.Equal(t, "(color_id IS NULL OR color_id = '')", where)
+
+		args, err := filter.Args()
+		assert.NoError(t, err)
+		assert.Equal(t, []interface{}{NULL}, args)
+	})
+
+	t.Run("Parse color_id[not]=NULL from URL", func(t *testing.T) {
+		filter, err := newFilter("color_id[not]", "NULL", ",", validations)
+		assert.NoError(t, err)
+		assert.Equal(t, "color_id[not]", filter.Key)
+		assert.Equal(t, "color_id", filter.Name)
+		assert.Equal(t, NOT, filter.Method)
+		assert.Equal(t, NULL, filter.Value)
+
+		where, err := filter.Where()
+		assert.NoError(t, err)
+		assert.Equal(t, "(color_id IS NOT NULL AND color_id != '')", where)
+
+		args, err := filter.Args()
+		assert.NoError(t, err)
+		assert.Equal(t, []interface{}{NULL}, args)
+	})
+
+	t.Run("Parse color_id[eq]=123 still works", func(t *testing.T) {
+		filter, err := newFilter("color_id[eq]", "123", ",", validations)
+		assert.NoError(t, err)
+		assert.Equal(t, "color_id[eq]", filter.Key)
+		assert.Equal(t, "color_id", filter.Name)
+		assert.Equal(t, EQ, filter.Method)
+		assert.Equal(t, 123, filter.Value)
+
+		where, err := filter.Where()
+		assert.NoError(t, err)
+		assert.Equal(t, "color_id = ?", where)
+
+		args, err := filter.Args()
+		assert.NoError(t, err)
+		assert.Equal(t, []interface{}{123}, args)
+	})
 }
 
 func Test_EmptyStringHandling(t *testing.T) {
